@@ -143,11 +143,28 @@ function GetEnemyHeroes()
 	return EnemyHeroes
 end
 
+function IsUnderTurret(unit)
+	for i = 1, Game.TurretCount() do
+		local turret = Game.Turret(i);
+		if turret and turret.isEnemy and turret.valid and turret.health > 0 then
+			if GetDistance(unit, turret.pos) <= 850 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function GetDashPos(unit)
+	return myHero.pos+(unit.pos-myHero.pos):Normalized()*500
+end
+
 class "Akali"
 
 local HeroIcon = "https://www.mobafire.com/images/champion/square/akali.png"
 local IgniteIcon = "http://pm1.narvii.com/5792/0ce6cda7883a814a1a1e93efa05184543982a1e4_hq.jpg"
 local QIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/b/b2/Five_Point_Strike.png"
+local WIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/2/21/Twilight_Shroud.png"
 local EIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/4/48/Shuriken_Flip.png"
 local RIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/b/bb/Perfect_Execution.png"
 
@@ -156,12 +173,15 @@ function Akali:Menu()
 	
 	self.AkaliMenu:MenuElement({id = "Harass", name = "Harass", type = MENU})
 	self.AkaliMenu.Harass:MenuElement({id = "UseQ", name = "Use Q [Five Point Strike]", value = true, leftIcon = QIcon})
+	self.AkaliMenu.Harass:MenuElement({id = "UseW", name = "Use W is under turret", value = true, leftIcon = WIcon})
 	self.AkaliMenu.Harass:MenuElement({id = "UseE", name = "Use E [Shuriken Flip]", value = true, leftIcon = EIcon})
 	self.AkaliMenu.Harass:MenuElement({id = "UseBC", name = "Use Bilgewater Cutlass", value = true})
 	self.AkaliMenu.Harass:MenuElement({id = "UseHG", name = "Use Hextech Gunblade", value = true})
 
 	self.AkaliMenu:MenuElement({id = "Combo", name = "Combo", type = MENU})
 	self.AkaliMenu.Combo:MenuElement({id = "UseQ", name = "Use Q [Five Point Strike]", value = true, leftIcon = QIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseW", name = "Use W is under turret", value = true, leftIcon = WIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseWR", name = "Use W is R attack", value = true, leftIcon = WIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseE", name = "Use E [Shuriken Flip]", value = true, leftIcon = EIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseR", name = "Use R [Perfect Execution]", value = true, leftIcon = RIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseBC", name = "Use Bilgewater Cutlass", value = true})
@@ -169,12 +189,16 @@ function Akali:Menu()
 
 	self.AkaliMenu:MenuElement({id = "KillSteal", name = "KillSteal", type = MENU})
 	self.AkaliMenu.KillSteal:MenuElement({id = "UseIgnite", name = "Use Ignite", value = true, leftIcon = IgniteIcon})
+
+	self.AkaliMenu:MenuElement({id = "AutoLevel", name = "AutoLevel", type = MENU})
+	self.AkaliMenu.AutoLevel:MenuElement({id = "AutoLevel", name = "Only Q->E->W", value = true})
 end
 
 function Akali:Spells()
-	AkaliQ = {range = 500}
-	AkaliE = { delay = 0.25, speed = 1850, radius = 10, range = 650  }
-	AkaliR = {range = 600}
+	AkaliQ = { delay = 0.25, speed = math.huge, radius = 10, range = 550  }
+	AkaliW = { range = 300 }
+	AkaliE = { delay = 0.25, speed = 1650, radius = 70, range = 825  }
+	AkaliR = { delay = 0, speed = 1650, radius = 80, range = 575  }
 end
 
 function Akali:__init()
@@ -194,6 +218,35 @@ function Akali:Tick()
 	Item_HK[ITEM_5] = HK_ITEM_5
 	Item_HK[ITEM_6] = HK_ITEM_6
 	Item_HK[ITEM_7] = HK_ITEM_7
+	
+	if self.AkaliMenu.AutoLevel.AutoLevel:Value() then
+		local mylevel = myHero.levelData.lvl
+		local mylevelpts = myHero.levelData.lvlPts
+
+		if mylevelpts > 0 then
+			if mylevel ==  6 or mylevel == 11 or mylevel == 16 then
+				LocalControlKeyDown(HK_LUS)
+          		LocalControlKeyDown(HK_R)
+          		LocalControlKeyUp(HK_R)
+          		LocalControlKeyUp(HK_LUS)
+			elseif mylevel == 1 or mylevel == 4 or mylevel == 5 or mylevel == 7 or mylevel == 9 then
+				LocalControlKeyDown(HK_LUS)
+          		LocalControlKeyDown(HK_Q)
+          		LocalControlKeyUp(HK_Q)
+          		LocalControlKeyUp(HK_LUS)
+			elseif mylevel == 2 or mylevel == 8 or mylevel == 10 or mylevel == 12 or mylevel == 13 then
+				LocalControlKeyDown(HK_LUS)
+          		LocalControlKeyDown(HK_E)
+          		LocalControlKeyUp(HK_E)
+          		LocalControlKeyUp(HK_LUS)
+			elseif mylevel == 3 or mylevel == 14 or mylevel == 15 or mylevel == 17 or mylevel == 18 then
+				LocalControlKeyDown(HK_LUS)
+          		LocalControlKeyDown(HK_W)
+          		LocalControlKeyUp(HK_W)
+          		LocalControlKeyUp(HK_LUS)
+			end
+  		end
+	end
 
 	self:KillSteal()
 
@@ -250,7 +303,6 @@ function Akali:Harass()
 	if targetE == nil then return end
 
 	if self.AkaliMenu.Harass.UseQ:Value() then
-		--PrintChat(IsReady(_Q))
 		if IsReady(_Q) then
 			if ValidTarget(targetQ, AkaliQ.range) then
 				LocalControlCastSpell(HK_Q,targetQ)
@@ -259,7 +311,6 @@ function Akali:Harass()
 	end
 
 	if self.AkaliMenu.Harass.UseE:Value() then
-		--PrintChat(IsReady(_E))
 		if IsReady(_E) then
 			if ValidTarget(targetE, AkaliE.range) then
 				local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
@@ -268,6 +319,14 @@ function Akali:Harass()
 						self:CastE(targetE,aimPosition)
 					end
 				end
+			end
+		end
+	end
+
+	if self.AkaliMenu.Harass.UseW:Value() then
+		if IsReady(_W) then
+			if IsUnderTurret(myHero.pos) then
+				LocalControlCastSpell(HK_W)
 			end
 		end
 	end
@@ -282,7 +341,6 @@ function Akali:CastE(target,EcastPos)
 end
 
 function Akali:Combo()
-	--PrintChat("Combo")
 
 	local targetBC = GOS:GetTarget(550,"AP")
 
@@ -311,7 +369,6 @@ function Akali:Combo()
 	if targetE == nil then return end
 
 	if self.AkaliMenu.Combo.UseE:Value() then
-		--PrintChat(IsReady(_E))
 		if IsReady(_E) then
 			if ValidTarget(targetE, AkaliE.range) then
 				local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
@@ -325,7 +382,6 @@ function Akali:Combo()
 	end
 
 	if self.AkaliMenu.Combo.UseQ:Value() then
-		--PrintChat(IsReady(_Q))
 		if IsReady(_Q) then
 			if ValidTarget(targetQ, AkaliQ.range) then
 				LocalControlCastSpell(HK_Q,targetQ)
@@ -334,10 +390,22 @@ function Akali:Combo()
 	end
 
 	if self.AkaliMenu.Combo.UseR:Value() then
-		--PrintChat(IsReady(_R))
 		if IsReady(_R) then
 			if ValidTarget(targetR, AkaliR.range) then
 				LocalControlCastSpell(HK_R,targetR)
+			end
+			if self.AkaliMenu.Combo.UseWR:Value() then
+				if IsReady(_W) then
+					LocalControlCastSpell(HK_W)
+				end
+			end
+		end
+	end
+
+	if self.AkaliMenu.Combo.UseW:Value() then
+		if IsReady(_W) then
+			if IsUnderTurret(myHero.pos) then
+				LocalControlCastSpell(HK_W)
 			end
 		end
 	end
