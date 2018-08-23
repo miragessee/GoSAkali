@@ -779,7 +779,7 @@ function Akali:Combo()
 
 	if targetE then
 		if self.AkaliMenu.Combo.UseE:Value() then
-			if IsReady(_E) then
+			if IsReady(_E) and GetSpellEName() == "AkaliE" then
 				if ValidTarget(targetE, AkaliE.range) then
 					local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
 					if hitChance and hitChance >= 2 then
