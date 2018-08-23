@@ -221,6 +221,14 @@ function GotBuff(unit, buffname)
 	return 0
 end
 
+function GetEbTarget()
+	for i,enemy in pairs(GetEnemyHeroes()) do
+		if GotBuff(enemy,"AkaliEMis") then
+			return enemy
+		end
+	end
+end
+
 class "Akali"
 
 local HeroIcon = "https://www.mobafire.com/images/champion/square/akali.png"
@@ -554,6 +562,16 @@ function Akali:KillSteal()
 	end
 end
 
+function TestBuff(unit)
+    for i = 0, unit.buffCount do
+        local buff = unit:GetBuff(i)
+        	if buff and buff.count > 0 then 
+            	print(buff.name)
+        	end
+    	end
+    print("No buff")
+end
+
 function Akali:Harass()
 
 	local targetBC = GOS:GetTarget(550,"AP")
@@ -578,7 +596,11 @@ function Akali:Harass()
 
 	local targetQ = GOS:GetTarget(AkaliQ.range,"AP")
 	local targetE = GOS:GetTarget(AkaliE.range,"AD")
-	local targetEb = GOS:GetTarget(999999,"AD")
+	local targetEb = GetEbTarget()
+
+	--print(TestBuff(targetEb))
+
+	--print(GotBuff(targetEb, "AkaliEMis"))
 
 	if targetQ then
 		if self.AkaliMenu.Harass.UseQ:Value() then
@@ -742,7 +764,7 @@ function Akali:Combo()
 
 	local targetQ = GOS:GetTarget(AkaliQ.range,"AP")
 	local targetE = GOS:GetTarget(AkaliE.range,"AD")
-	local targetEb = GOS:GetTarget(999999,"AD")
+	local targetEb = GetEbTarget()
 	local targetR = GOS:GetTarget(AkaliR.range,"AD")
 	local targetRb = GOS:GetTarget(AkaliR.range,"AP")
 
