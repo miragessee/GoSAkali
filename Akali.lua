@@ -179,20 +179,20 @@ end
 
 function EDmg()
 	if myHero:GetSpellData(_E).level == 0 then
-		local Dmg1 = (({60, 90, 120, 150, 180})[1] + 0.70 * myHero.totalDamage)
+		local Dmg1 = (({60, 90, 120, 150, 180})[1] + 0.70 * myHero.bonusDamage)
     	return Dmg1
     else
-		local Dmg1 = (({60, 90, 120, 150, 180})[myHero:GetSpellData(_E).level] + 0.70 * myHero.totalDamage)
+		local Dmg1 = (({60, 90, 120, 150, 180})[myHero:GetSpellData(_E).level] + 0.70 * myHero.bonusDamage)
     	return Dmg1
 	end
 end
 
 function RDmg()
 	if myHero:GetSpellData(_R).level == 0 then
-		local Dmg1 = (({120, 180, 240})[1] + 0.5 * myHero.totalDamage)
+		local Dmg1 = (({120, 180, 240})[1] + 0.5 * myHero.bonusDamage)
     	return Dmg1
     else
-		local Dmg1 = (({120, 180, 240})[myHero:GetSpellData(_R).level] + 0.5 * myHero.totalDamage)
+		local Dmg1 = (({120, 180, 240})[myHero:GetSpellData(_R).level] + 0.5 * myHero.bonusDamage)
     	return Dmg1
 	end
 end
