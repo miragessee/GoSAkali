@@ -229,6 +229,15 @@ function GetEbTarget()
 	end
 end
 
+function IsRecalling()
+	for K, Buff in pairs(GetBuffs(myHero)) do
+		if Buff.name == "recall" and Buff.duration > 0 then
+			return true
+		end
+	end
+	return false
+end
+
 class "Akali"
 
 local HeroIcon = "https://www.mobafire.com/images/champion/square/akali.png"
@@ -425,7 +434,7 @@ function Akali:__init()
 end
 
 function Akali:Tick()
-	if myHero.dead or Game.IsChatOpen() == true then return end
+	if myHero.dead or Game.IsChatOpen() == true or IsRecalling() == true or ExtLibEvade and ExtLibEvade.Evading == true then return end
 
 	Item_HK[ITEM_1] = HK_ITEM_1
 	Item_HK[ITEM_2] = HK_ITEM_2
@@ -602,20 +611,9 @@ function Akali:Harass()
 
 	--print(GotBuff(targetEb, "AkaliEMis"))
 
-	if targetQ then
-		if self.AkaliMenu.Harass.UseQ:Value() then
-			if IsReady(_Q) then
-				if ValidTarget(targetQ, AkaliQ.range) then
-					LocalControlCastSpell(HK_Q,targetQ)
-				end
-				self:CastWIsUnderTurret()
-			end
-		end
-	end
-
 	if targetE then
 		if self.AkaliMenu.Harass.UseE:Value() then
-			if IsReady(_E) then
+			if IsReady(_E) and GetSpellEName() == "AkaliE" then
 				if ValidTarget(targetE, AkaliE.range) then
 					local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
 					if hitChance and hitChance >= 2 then
@@ -623,6 +621,17 @@ function Akali:Harass()
 							self:CastE(targetE,aimPosition)
 						end
 					end
+				end
+				self:CastWIsUnderTurret()
+			end
+		end
+	end
+
+	if targetQ then
+		if self.AkaliMenu.Harass.UseQ:Value() then
+			if IsReady(_Q) then
+				if ValidTarget(targetQ, AkaliQ.range) then
+					LocalControlCastSpell(HK_Q,targetQ)
 				end
 				self:CastWIsUnderTurret()
 			end
