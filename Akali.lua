@@ -159,6 +159,68 @@ function GetDashPos(unit)
 	return myHero.pos+(unit.pos-myHero.pos):Normalized()*500
 end
 
+function GetSpellEName()
+	return myHero:GetSpellData(_E).name
+end
+
+function GetSpellRName()
+	return myHero:GetSpellData(_R).name
+end
+
+function QDmg()
+	if myHero:GetSpellData(_Q).level == 0 then
+		local Dmg1 = (({25, 50, 75, 100, 125})[1] + 0.65 * myHero.totalDamage + 0.5 * myHero.ap)
+   		return Dmg1
+    else
+		local Dmg1 = (({25, 50, 75, 100, 125})[myHero:GetSpellData(_Q).level] + 0.65 * myHero.totalDamage + 0.5 * myHero.ap)
+   		return Dmg1
+	end
+end
+
+function EDmg()
+	if myHero:GetSpellData(_E).level == 0 then
+		local Dmg1 = (({60, 90, 120, 150, 180})[1] + 0.70 * myHero.totalDamage)
+    	return Dmg1
+    else
+		local Dmg1 = (({60, 90, 120, 150, 180})[myHero:GetSpellData(_E).level] + 0.70 * myHero.totalDamage)
+    	return Dmg1
+	end
+end
+
+function RDmg()
+	if myHero:GetSpellData(_R).level == 0 then
+		local Dmg1 = (({120, 180, 240})[1] + 0.5 * myHero.totalDamage)
+    	return Dmg1
+    else
+		local Dmg1 = (({120, 180, 240})[myHero:GetSpellData(_R).level] + 0.5 * myHero.totalDamage)
+    	return Dmg1
+	end
+end
+
+function RbDmg(unit)
+	if myHero:GetSpellData(_R).level == 0 then
+		local missingHealthPercent = (1 - (unit.health / unit.maxHealth)) * 100
+    	local totalIncreasement = 1 + ((1.5 * missingHealthPercent) / 100)
+    	local RDmg = (({120, 180, 240})[1] + 0.3 * myHero.ap) * totalIncreasement
+    	return RDmg
+    else
+		local missingHealthPercent = (1 - (unit.health / unit.maxHealth)) * 100
+    	local totalIncreasement = 1 + ((1.5 * missingHealthPercent) / 100)
+    	local RDmg = (({120, 180, 240})[myHero:GetSpellData(_R).level] + 0.3 * myHero.ap) * totalIncreasement
+    	return RDmg
+	end
+end
+
+function GotBuff(unit, buffname)
+	for i = 0, unit.buffCount do
+		local buff = unit:GetBuff(i)
+		if buff.name == buffname and buff.count > 0 then 
+			return buff.count
+		end
+	end
+	return 0
+end
+
 class "Akali"
 
 local HeroIcon = "https://www.mobafire.com/images/champion/square/akali.png"
@@ -166,7 +228,124 @@ local IgniteIcon = "http://pm1.narvii.com/5792/0ce6cda7883a814a1a1e93efa05184543
 local QIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/b/b2/Five_Point_Strike.png"
 local WIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/2/21/Twilight_Shroud.png"
 local EIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/4/48/Shuriken_Flip.png"
+local EbIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/a/a8/Shuriken_Flip_2.png"
 local RIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/b/bb/Perfect_Execution.png"
+local IS = {}
+local Spells = {
+	["Aatrox"] = {"AatroxE"},
+	["Ahri"] = {"AhriOrbofDeception", "AhriFoxFire", "AhriSeduce", "AhriTumble"},
+	["Akali"] = {"AkaliMota"},
+	["Amumu"] = {"BandageToss"},
+	["Anivia"] = {"FlashFrostSpell", "Frostbite"},
+	["Annie"] = {"Disintegrate"},
+	["Ashe"] = {"Volley", "EnchantedCrystalArrow"},
+	["AurelionSol"] = {"AurelionSolQ"},
+	["Bard"] = {"BardQ"},
+	["Blitzcrank"] = {"RocketGrab"},
+	["Brand"] = {"BrandQ", "BrandR"},
+	["Braum"] = {"BraumQ", "BraumR"},
+	["Caitlyn"] = {"CaitlynPiltoverPeacemaker", "CaitlynEntrapment", "CaitlynAceintheHole"},
+	["Cassiopeia"] = {"CassiopeiaW", "CassiopeiaTwinFang"},
+	["Corki"] = {"PhosphorusBomb", "MissileBarrageMissile", "MissileBarrageMissile2"},
+	["Diana"] = {"DianaArc", "DianaOrbs"},
+	["DrMundo"] = {"InfectedCleaverMissileCast"},
+	["Draven"] = {"DravenDoubleShot", "DravenRCast"},
+	["Ekko"] = {"EkkoQ"},
+	["Elise"] = {"EliseHumanQ", "EliseHumanE"},
+	["Evelynn"] = {"EvelynnQ"},
+	["Ezreal"] = {"EzrealMysticShot", "EzrealEssenceFlux", "EzrealArcaneShift", "EzrealTrueshotBarrage"},
+	["Fiddlesticks"] = {"FiddlesticksDarkWind"},
+	["Fiora"] = {"FioraW"},
+	["Fizz"] = {"FizzR"},
+	["Galio"] = {"GalioQ"},
+	["Gangplank"] = {"GangplankQ"},
+	["Gnar"] = {"GnarQMissile", "GnarBigQMissile"},
+	["Gragas"] = {"GragasQ", "GragasR"},
+	["Graves"] = {"GravesQLineSpell", "GravesSmokeGrenade", "GravesChargeShot"},
+	["Hecarim"] = {"HecarimUlt"},
+	["Heimerdinger"] = {"HeimerdingerQ", "HeimerdingerW", "HeimerdingerE", "HeimerdingerEUlt"},
+	["Illaoi"] = {"IllaoiE"},
+	["Irelia"] = {"IreliaR"},
+	["Ivern"] = {"IvernQ"},
+	["Janna"] = {"HowlingGale", "SowTheWind"},
+	["Jayce"] = {"JayceShockBlast", "JayceShockBlastWallMis"},
+	["Jhin"] = {"JhinQ", "JhinW", "JhinR"},
+	["Jinx"] = {"JinxW", "JinxE", "JinxR"},
+	["Kaisa"] = {"KaisaQ", "KaisaW"},
+	["Kalista"] = {"KalistaMysticShot"},
+	["Karma"] = {"KarmaQ", "KarmaQMantra"},
+	["Kassadin"] = {"NullLance"},
+	["Katarina"] = {"KatarinaQ", "KatarinaR"},
+	["Kayle"] = {"JudicatorReckoning"},
+	["Kennen"] = {"KennenShurikenHurlMissile1"},
+	["Khazix"] = {"KhazixW", "KhazixWLong"},
+	["Kindred"] = {"KindredQ", "KindredE"},
+	["Kled"] = {"KledQ", "KledQRider"},
+	["KogMaw"] = {"KogMawQ", "KogMawVoidOoze"},
+	["Leblanc"] = {"LeblancQ", "LeblancE", "LeblancRQ", "LeblancRE"},
+	["Leesin"] = {"BlinkMonkQOne"},
+	["Leona"] = {"LeonaZenithBlade"},
+	["Lissandra"] = {"LissandraQMissile", "LissandraEMissile"},
+	["Lucian"] = {"LucianW", "LucianRMis"},
+	["Lulu"] = {"LuluQ", "LuluW"},
+	["Lux"] = {"LuxLightBinding", "LuxPrismaticWave", "LuxLightStrikeKugel"},
+	["Malphite"] = {"SeismicShard"},
+	["Maokai"] = {"MaokaiQ", "MaokaiR"},
+	["MissFortune"] = {"MissFortuneRicochetShot", "MissFortuneBulletTime"},
+	["Morgana"] = {"DarkBindingMissile"},
+	["Nami"] = {"NamiQ", "NamiW", "NamiRMissile"},
+	["Nautilus"] = {"NautilusAnchorDragMissile"},
+	["Nidalee"] = {"JavelinToss"},
+	["Nocturne"] = {"NocturneDuskbringer"},
+	["Nunu"] = {"IceBlast"},
+	["Olaf"] = {"OlafAxeThrowCast"},
+	["Orianna"] = {"OrianaIzunaCommand", "OrianaRedactCommand"},
+	["Ornn"] = {"OrnnQ", "OrnnR", "OrnnRCharge"},
+	["Pantheon"] = {"PantheonQ"},
+	["Poppy"] = {"PoppyRSpell"},
+	["Pyke"] = {"PykeQRange"},
+	["Quinn"] = {"QuinnQ"},
+	["Rakan"] = {"RakanQ"},
+	["Reksai"] = {"RekSaiQBurrowed"},
+	["Rengar"] = {"RengarE"},
+	["Riven"] = {"RivenIzunaBlade"},
+	["Rumble"] = {"RumbleGrenade"},
+	["Ryze"] = {"RyzeQ", "RyzeE"},
+	["Sejuani"] = {"SejuaniE", "SejuaniR"},
+	["Shaco"] = {"TwoShivPoison"},
+	["Shyvana"] = {"ShyvanaFireball", "ShyvanaFireballDragon2"},
+	["Sion"] = {"SionE"},
+	["Sivir"] = {"SivirQ"},
+	["Skarner"] = {"SkarnerFractureMissile"},
+	["Sona"] = {"SonaQ", "SonaR"},
+	["Swain"] = {"SwainE"},
+	["Syndra"] = {"SyndraR"},
+	["TahmKench"] = {"TahmKenchQ"},
+	["Taliyah"] = {"TaliyahQ"},
+	["Talon"] = {"TalonW", "TalonR"},
+	["Teemo"] = {"BlindingDart", "TeemoRCast"},
+	["Thresh"] = {"ThreshQInternal"},
+	["Tristana"] = {"TristanaE", "TristanaR"},
+	["TwistedFate"] = {"WildCards"},
+	["Twitch"] = {"TwitchVenomCask"},
+	["Urgot"] = {"UrgotQ", "UrgotR"},
+	["Varus"] = {"VarusQ", "VarusR"},
+	["Vayne"] = {"VayneCondemn", "VayneCondemnMissile"},
+	["Veigar"] = {"VeigarBalefulStrike", "VeigarR"},
+	["VelKoz"] = {"VelKozQ", "VelkozQMissileSplit", "VelKozW", "VelKozE"},
+	["Viktor"] = {"ViktorPowerTransfer", "ViktorDeathRay"},
+	["Vladimir"] = {"VladimirE"},
+	["Xayah"] = {"XayahQ", "XayahE", "XayahR"},
+	["Xerath"] = {"XerathMageSpear"},
+	["Yasuo"] = {"YasuoQ3W"},
+	["Yorick"] = {"YorickE"},
+	["Zac"] = {"ZacQ"},
+	["Zed"] = {"ZedQ"},
+	["Ziggs"] = {"ZiggsQ", "ZiggsW", "ZiggsE"},
+	["Zilean"] = {"ZileanQ", "ZileanQAttachAudio"},
+	["Zoe"] = {"ZoeQMissile", "ZoeQRecast", "ZoeE"},
+	["Zyra"] = {"ZyraE"},
+}
 
 function Akali:Menu()
 	self.AkaliMenu = MenuElement({type = MENU, id = "Akali", name = "Mirage's Akali", leftIcon = HeroIcon})
@@ -174,7 +353,11 @@ function Akali:Menu()
 	self.AkaliMenu:MenuElement({id = "Harass", name = "Harass", type = MENU})
 	self.AkaliMenu.Harass:MenuElement({id = "UseQ", name = "Use Q [Five Point Strike]", value = true, leftIcon = QIcon})
 	self.AkaliMenu.Harass:MenuElement({id = "UseW", name = "Use W is under turret", value = true, leftIcon = WIcon})
-	self.AkaliMenu.Harass:MenuElement({id = "UseE", name = "Use E [Shuriken Flip]", value = true, leftIcon = EIcon})
+	self.AkaliMenu.Harass:MenuElement({id = "UseE", name = "Use E [Shuriken Flip] FIRST ACTIVE", value = true, leftIcon = EIcon})
+	self.AkaliMenu.Harass:MenuElement({id = "UseEb", name = "Use E [Shuriken Flip] SECOND ACTIVE", value = false, leftIcon = EbIcon})
+	self.AkaliMenu.Harass:MenuElement({id = "UseEbU", name = "Use E 2nd enemy is not under turret", value = false, leftIcon = EbIcon})
+	self.AkaliMenu.Harass:MenuElement({id = "UseEbUK", name = "Use E 2nd enemy is killable", value = true, leftIcon = EbIcon})
+	self.AkaliMenu.Harass:MenuElement({id = "UseEbUKQ", name = "Use E 2nd enemy is killable EQ", value = true, leftIcon = EbIcon})
 	self.AkaliMenu.Harass:MenuElement({id = "UseBC", name = "Use Bilgewater Cutlass", value = true})
 	self.AkaliMenu.Harass:MenuElement({id = "UseHG", name = "Use Hextech Gunblade", value = true})
 
@@ -182,7 +365,11 @@ function Akali:Menu()
 	self.AkaliMenu.Combo:MenuElement({id = "UseQ", name = "Use Q [Five Point Strike]", value = true, leftIcon = QIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseW", name = "Use W is under turret", value = true, leftIcon = WIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseWR", name = "Use W is R attack", value = true, leftIcon = WIcon})
-	self.AkaliMenu.Combo:MenuElement({id = "UseE", name = "Use E [Shuriken Flip]", value = true, leftIcon = EIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseE", name = "Use E [Shuriken Flip] FIRST ACTIVE", value = true, leftIcon = EIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseEb", name = "Use E [Shuriken Flip] SECOND ACTIVE", value = true, leftIcon = EbIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseEbU", name = "Use E 2nd enemy is not under turret", value = false, leftIcon = EbIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseEbUK", name = "Use E 2nd enemy is killable", value = true, leftIcon = EbIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseEbUKQ", name = "Use E 2nd enemy is killable EQ", value = true, leftIcon = EbIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseR", name = "Use R [Perfect Execution]", value = true, leftIcon = RIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseBC", name = "Use Bilgewater Cutlass", value = true})
 	self.AkaliMenu.Combo:MenuElement({id = "UseHG", name = "Use Hextech Gunblade", value = true})
@@ -192,13 +379,33 @@ function Akali:Menu()
 
 	self.AkaliMenu:MenuElement({id = "AutoLevel", name = "AutoLevel", type = MENU})
 	self.AkaliMenu.AutoLevel:MenuElement({id = "AutoLevel", name = "Only Q->E->W", value = true})
+
+	self.AkaliMenu:MenuElement({id = "Escape", name = "Escape", type = MENU})
+	self.AkaliMenu.Escape:MenuElement({id = "UseW", name = "Use W [Twilight Shroud]", value = true})
+	self.AkaliMenu.Escape:MenuElement({id = "UseE", name = "Use E [Shuriken Flip]", value = true})
+
+	self.AkaliMenu:MenuElement({id = "AntiGapcloser", name = "AntiGapcloser", type = MENU})
+	self.AkaliMenu.AntiGapcloser:MenuElement({id = "UseW", name = "Use W [Twilight Shroud]", value = true, leftIcon = WIcon})
+	self.AkaliMenu.AntiGapcloser:MenuElement({id = "UseE", name = "Use E [Shuriken Flip] FIRST ACTIVE]", value = false, leftIcon = EIcon})
+	self.AkaliMenu.AntiGapcloser:MenuElement({id = "DistanceW", name = "Distance: W", value = 300, min = 25, max = 2000, step = 25})
+	self.AkaliMenu.AntiGapcloser:MenuElement({id = "DistanceE", name = "Distance: E", value = 300, min = 25, max = 2000, step = 25})
+
+	self.AkaliMenu:MenuElement({id = "Drawings", name = "Drawings", type = MENU})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawQ", name = "Draw Q Range", value = true})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawW", name = "Draw W Range", value = false})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawE", name = "Draw E Range", value = true})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawR", name = "Draw R Range", value = true})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawAA", name = "Draw Killable AAs", value = false})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawKS", name = "Draw Killable Skills", value = true})
+	self.AkaliMenu.Drawings:MenuElement({id = "DrawJng", name = "Draw Jungler Info", value = true})
 end
 
 function Akali:Spells()
 	AkaliQ = { delay = 0.25, speed = math.huge, radius = 10, range = 550  }
-	AkaliW = { range = 300 }
+	AkaliW = { delay = 0.25, speed = math.huge, radius = 300, range = 300 }
 	AkaliE = { delay = 0.25, speed = 1650, radius = 70, range = 825  }
 	AkaliR = { delay = 0, speed = 1650, radius = 80, range = 575  }
+	AkaliRb = { delay = 0, speed = 3300, radius = 80, range = 575 }
 end
 
 function Akali:__init()
@@ -206,6 +413,7 @@ function Akali:__init()
 	self:Menu()
 	self:Spells()
 	Callback.Add("Tick", function() self:Tick() end)
+	Callback.Add("Draw", function() self:Draw() end)
 end
 
 function Akali:Tick()
@@ -218,6 +426,10 @@ function Akali:Tick()
 	Item_HK[ITEM_5] = HK_ITEM_5
 	Item_HK[ITEM_6] = HK_ITEM_6
 	Item_HK[ITEM_7] = HK_ITEM_7
+
+	self:AntiGapcloser()
+
+	self:Escape()
 	
 	if self.AkaliMenu.AutoLevel.AutoLevel:Value() then
 		local mylevel = myHero.levelData.lvl
@@ -258,6 +470,75 @@ function Akali:Tick()
 	end
 end
 
+function Akali:AntiGapcloser()
+	for i,antigap in pairs(GetEnemyHeroes()) do
+		if self.AkaliMenu.AntiGapcloser.UseW:Value() then
+			if IsReady(_W) then
+				if ValidTarget(antigap, self.AkaliMenu.AntiGapcloser.DistanceW:Value()) then
+					LocalControlCastSpell(HK_W)
+				end
+			end
+		end
+		if self.AkaliMenu.AntiGapcloser.UseE:Value() then
+			if IsReady(_E) then
+				if ValidTarget(antigap, self.AkaliMenu.AntiGapcloser.DistanceE:Value()) then
+					local EPos = Vector(myHero.pos)+(Vector(myHero.pos)-Vector(antigap.pos))
+					LocalControlCastSpell(HK_E, EPos)
+				end
+			end
+		end
+	end
+end
+
+function Akali:Escape()
+	for i = 1, Game.HeroCount() do
+		local h = Game.Hero(i);
+		if h.isEnemy then
+			if h.activeSpell.valid and h.activeSpell.range > 0 then
+				local t = Spells[h.charName]
+				if t then
+					for j = 1, #t do
+						if h.activeSpell.name == t[j] then
+							if IS[h.networkID] == nil then
+								IS[h.networkID] = {
+								sPos = h.activeSpell.startPos, 
+								ePos = h.activeSpell.startPos + Vector(h.activeSpell.startPos, h.activeSpell.placementPos):Normalized() * h.activeSpell.range, 
+								radius = h.activeSpell.width or 100, 
+								speed = h.activeSpell.speed or 9999, 
+								startTime = h.activeSpell.startTime
+								}
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	for key, v in pairs(IS) do
+		local SpellHit = v.sPos + Vector(v.sPos,v.ePos):Normalized() * GetDistance(myHero.pos,v.sPos)
+		local SpellPosition = v.sPos + Vector(v.sPos,v.ePos):Normalized() * (v.speed * (Game.Timer() - v.startTime) * 3)
+		local dodge = SpellPosition + Vector(v.sPos,v.ePos):Normalized() * (v.speed * 0.1)
+		if GetDistanceSqr(SpellHit,SpellPosition) <= GetDistanceSqr(dodge,SpellPosition) and GetDistance(SpellHit,v.sPos) - v.radius - myHero.boundingRadius <= GetDistance(v.sPos,v.ePos) then
+			if GetDistanceSqr(myHero.pos,SpellHit) < (v.radius + myHero.boundingRadius) ^ 2 then
+				if self.AkaliMenu.Escape.UseE:Value() then
+					if IsReady(_E) then
+						local castPos = myHero.pos + Vector(myHero.pos,v.sPos):Normalized() * 100
+						Control.CastSpell(HK_E, castPos)
+					end
+				end
+				if self.AkaliMenu.Escape.UseW:Value() then
+					if IsReady(_W) then
+						LocalControlCastSpell(HK_W)
+					end
+				end
+			end
+		end
+		if (GetDistanceSqr(SpellPosition,v.sPos) >= GetDistanceSqr(v.sPos,v.ePos)) then
+			IS[key] = nil
+		end
+	end
+end
+
 function Akali:KillSteal()
 	for i,enemy in pairs(GetEnemyHeroes()) do
 		if self.AkaliMenu.KillSteal.UseIgnite:Value() then
@@ -274,8 +555,6 @@ function Akali:KillSteal()
 end
 
 function Akali:Harass()
-	--PrintChat("Harass")
-	--PrintChat(GOS:GetTarget(500,"AP"))
 
 	local targetBC = GOS:GetTarget(550,"AP")
 
@@ -299,31 +578,130 @@ function Akali:Harass()
 
 	local targetQ = GOS:GetTarget(AkaliQ.range,"AP")
 	local targetE = GOS:GetTarget(AkaliE.range,"AD")
+	local targetEb = GOS:GetTarget(999999,"AD")
 
-	if targetE == nil then return end
-
-	if self.AkaliMenu.Harass.UseQ:Value() then
-		if IsReady(_Q) then
-			if ValidTarget(targetQ, AkaliQ.range) then
-				LocalControlCastSpell(HK_Q,targetQ)
+	if targetQ then
+		if self.AkaliMenu.Harass.UseQ:Value() then
+			if IsReady(_Q) then
+				if ValidTarget(targetQ, AkaliQ.range) then
+					LocalControlCastSpell(HK_Q,targetQ)
+				end
+				self:CastWIsUnderTurret()
 			end
 		end
 	end
 
-	if self.AkaliMenu.Harass.UseE:Value() then
-		if IsReady(_E) then
-			if ValidTarget(targetE, AkaliE.range) then
-				local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
-				if hitChance and hitChance >= 2 then
-					if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
-						self:CastE(targetE,aimPosition)
+	if targetE then
+		if self.AkaliMenu.Harass.UseE:Value() then
+			if IsReady(_E) then
+				if ValidTarget(targetE, AkaliE.range) then
+					local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
+					if hitChance and hitChance >= 2 then
+						if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
+							self:CastE(targetE,aimPosition)
+						end
 					end
+				end
+				self:CastWIsUnderTurret()
+			end
+		end
+	end
+
+	if self.AkaliMenu.Harass.UseEb:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			LocalControlCastSpell(HK_E)
+		end
+		self:CastWIsUnderTurret()
+	end
+
+	if self.AkaliMenu.Harass.UseEbU:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			if not IsUnderTurret(GetDashPos(targetEb)) then
+				LocalControlCastSpell(HK_E, targetEb)
+			end
+		end
+		self:CastWIsUnderTurret()
+	end
+
+	if self.AkaliMenu.Harass.UseEbUK:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			if targetEb.health < EDmg() then
+				LocalControlCastSpell(HK_E, targetEb)
+			end
+		end
+		self:CastWIsUnderTurret()
+	end
+
+	if self.AkaliMenu.Harass.UseEbUKQ:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			if targetEb.health < QDmg() + EDmg() then
+				LocalControlCastSpell(HK_E, targetEb)
+			end
+		end
+		self:CastWIsUnderTurret()
+	end
+end
+
+function Akali:Draw()
+	if myHero.dead then return end
+	if self.AkaliMenu.Drawings.DrawQ:Value() then Draw.Circle(myHero.pos, AkaliQ.range, 1, Draw.Color(255, 0, 191, 255)) end
+	if self.AkaliMenu.Drawings.DrawW:Value() then Draw.Circle(myHero.pos, AkaliW.range, 1, Draw.Color(255, 65, 105, 225)) end
+	if self.AkaliMenu.Drawings.DrawE:Value() then Draw.Circle(myHero.pos, AkaliE.range, 1, Draw.Color(255, 30, 144, 255)) end
+	if self.AkaliMenu.Drawings.DrawR:Value() then Draw.Circle(myHero.pos, AkaliR.range, 1, Draw.Color(255, 0, 0, 255)) end
+
+	for i, enemy in pairs(GetEnemyHeroes()) do
+		if self.AkaliMenu.Drawings.DrawJng:Value() then
+			if enemy:GetSpellData(SUMMONER_1).name == "SummonerSmite" or enemy:GetSpellData(SUMMONER_2).name == "SummonerSmite" then
+				Smite = true
+			else
+				Smite = false
+			end
+			if Smite then
+				if enemy.alive then
+					if ValidTarget(enemy) then
+						if GetDistance(myHero.pos, enemy.pos) > 3000 then
+							Draw.Text("Jungler: Visible", 17, myHero.pos2D.x-45, myHero.pos2D.y+10, Draw.Color(0xFF32CD32))
+						else
+							Draw.Text("Jungler: Near", 17, myHero.pos2D.x-43, myHero.pos2D.y+10, Draw.Color(0xFFFF0000))
+						end
+					else
+						Draw.Text("Jungler: Invisible", 17, myHero.pos2D.x-55, myHero.pos2D.y+10, Draw.Color(0xFFFFD700))
+					end
+				else
+					Draw.Text("Jungler: Dead", 17, myHero.pos2D.x-45, myHero.pos2D.y+10, Draw.Color(0xFF32CD32))
+				end
+			end
+		end
+		if self.AkaliMenu.Drawings.DrawAA:Value() then
+			if ValidTarget(enemy) then
+				AALeft = enemy.health / myHero.totalDamage
+				Draw.Text("AA Left: "..tostring(math.ceil(AALeft)), 17, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFF00BFFF))
+			end
+		end
+		if self.AkaliMenu.Drawings.DrawKS:Value() then
+			if ValidTarget(enemy) then
+				if enemy.health < (QDmg()) then
+					Draw.Text("Killable Skills (Q): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
+				elseif enemy.health < (QDmg() + EDmg()) then
+					Draw.Text("Killable Skills (Q+E): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
+				elseif enemy.health < (EDmg() + EDmg()) then
+					Draw.Text("Killable Skills (E+Eb): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
+				elseif enemy.health < (QDmg() + EDmg() + EDmg()) then
+					Draw.Text("Killable Skills (Q+E+Eb): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
+				elseif enemy.health < (QDmg() + EDmg() + RDmg()) then
+					Draw.Text("Killable Skills (Q+E+R): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
+				elseif enemy.health < (QDmg() + EDmg() + EDmg() + RDmg()) then
+					Draw.Text("Killable Skills (Q+E+Eb+R): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
+				elseif enemy.health < (QDmg() + EDmg() + EDmg() + RDmg() + RbDmg(enemy)) then
+					Draw.Text("Killable Skills (Q+E+Eb+R+Rb): ", 25, enemy.pos2D.x-38, enemy.pos2D.y+10, Draw.Color(0xFFFF0000))
 				end
 			end
 		end
 	end
+end
 
-	if self.AkaliMenu.Harass.UseW:Value() then
+function Akali:CastWIsUnderTurret()
+	if self.AkaliMenu.Combo.UseW:Value() then
 		if IsReady(_W) then
 			if IsUnderTurret(myHero.pos) then
 				LocalControlCastSpell(HK_W)
@@ -364,50 +742,101 @@ function Akali:Combo()
 
 	local targetQ = GOS:GetTarget(AkaliQ.range,"AP")
 	local targetE = GOS:GetTarget(AkaliE.range,"AD")
+	local targetEb = GOS:GetTarget(999999,"AD")
 	local targetR = GOS:GetTarget(AkaliR.range,"AD")
+	local targetRb = GOS:GetTarget(AkaliR.range,"AP")
 
-	if targetE == nil then return end
-
-	if self.AkaliMenu.Combo.UseE:Value() then
-		if IsReady(_E) then
-			if ValidTarget(targetE, AkaliE.range) then
-				local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
-				if hitChance and hitChance >= 2 then
-					if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
-						self:CastE(targetE,aimPosition)
+	if targetE then
+		if self.AkaliMenu.Combo.UseE:Value() then
+			if IsReady(_E) then
+				if ValidTarget(targetE, AkaliE.range) then
+					local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
+					if hitChance and hitChance >= 2 then
+						if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
+							self:CastE(targetE,aimPosition)
+						end
 					end
 				end
+				self:CastWIsUnderTurret()
 			end
 		end
 	end
 
-	if self.AkaliMenu.Combo.UseQ:Value() then
-		if IsReady(_Q) then
-			if ValidTarget(targetQ, AkaliQ.range) then
-				LocalControlCastSpell(HK_Q,targetQ)
-			end
-		end
-	end
-
-	if self.AkaliMenu.Combo.UseR:Value() then
-		if IsReady(_R) then
-			if ValidTarget(targetR, AkaliR.range) then
-				LocalControlCastSpell(HK_R,targetR)
-			end
-			if self.AkaliMenu.Combo.UseWR:Value() then
-				if IsReady(_W) then
-					LocalControlCastSpell(HK_W)
+	if targetQ then
+		if self.AkaliMenu.Combo.UseQ:Value() then
+			if IsReady(_Q) then
+				if ValidTarget(targetQ, AkaliQ.range) then
+					LocalControlCastSpell(HK_Q,targetQ)
 				end
+				self:CastWIsUnderTurret()
 			end
 		end
 	end
 
-	if self.AkaliMenu.Combo.UseW:Value() then
-		if IsReady(_W) then
-			if IsUnderTurret(myHero.pos) then
-				LocalControlCastSpell(HK_W)
+	if targetR then
+		if self.AkaliMenu.Combo.UseR:Value() then
+			if IsReady(_R) then
+				if ValidTarget(targetR, AkaliR.range) then
+					LocalControlCastSpell(HK_R,targetR)
+				end
+				if self.AkaliMenu.Combo.UseWR:Value() then
+					if IsReady(_W) then
+						LocalControlCastSpell(HK_W)
+					end
+				end
+				self:CastWIsUnderTurret()
 			end
 		end
+	end
+
+	if targetRb then
+		if self.AkaliMenu.Combo.UseR:Value() then
+			if IsReady(_R) and GetSpellRName() == "AkaliRb" then
+				if ValidTarget(targetRb, AkaliR.range) then
+					LocalControlCastSpell(HK_R,targetRb)
+				end
+				if self.AkaliMenu.Combo.UseWR:Value() then
+					if IsReady(_W) then
+						LocalControlCastSpell(HK_W)
+					end
+				end
+				self:CastWIsUnderTurret()
+			end
+		end
+	end
+
+	if self.AkaliMenu.Combo.UseEb:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			LocalControlCastSpell(HK_E)
+		end
+		self:CastWIsUnderTurret()
+	end
+
+	if self.AkaliMenu.Combo.UseEbU:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			if not IsUnderTurret(GetDashPos(targetEb)) then
+				LocalControlCastSpell(HK_E, targetEb)
+			end
+		end
+		self:CastWIsUnderTurret()
+	end
+
+	if self.AkaliMenu.Combo.UseEbUK:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			if targetEb.health < EDmg() then
+				LocalControlCastSpell(HK_E, targetEb)
+			end
+		end
+		self:CastWIsUnderTurret()
+	end
+
+	if self.AkaliMenu.Combo.UseEbUKQ:Value() then
+		if IsReady(_E) and GetSpellEName() == "AkaliEb" then
+			if targetEb.health < QDmg() + EDmg() then
+				LocalControlCastSpell(HK_E, targetEb)
+			end
+		end
+		self:CastWIsUnderTurret()
 	end
 end
 
