@@ -1,5 +1,53 @@
 if myHero.charName ~= "Akali" then return end
 
+-- [ update ]
+do
+      
+      local Version = 2
+      
+      local Files = {
+            Lua = {
+                  Path = SCRIPT_PATH,
+                  Name = "Akali.lua",
+                  Url = "https://raw.githubusercontent.com/miragessee/GoSAkali/master/Akali.lua"
+            },
+            Version = {
+                  Path = SCRIPT_PATH,
+                  Name = "miragesakali.version",
+                  Url = "https://raw.githubusercontent.com/miragessee/GoSAkali/master/miragesakali.version"
+            }
+      }
+      
+      local function AutoUpdate()
+            
+            local function DownloadFile(url, path, fileName)
+                  DownloadFileAsync(url, path .. fileName, function() end)
+                  while not FileExist(path .. fileName) do end
+            end
+            
+            local function ReadFile(path, fileName)
+                  local file = io.open(path .. fileName, "r")
+                  local result = file:read()
+                  file:close()
+                  return result
+            end
+            
+            DownloadFile(Files.Version.Url, Files.Version.Path, Files.Version.Name)
+            
+            local NewVersion = tonumber(ReadFile(Files.Version.Path, Files.Version.Name)) 
+            if NewVersion > Version then
+                  DownloadFile(Files.Lua.Url, Files.Lua.Path, Files.Lua.Name)
+                  print(Files.Version.Name .. ": Updated to " .. tostring(NewVersion) .. ". Please Reload with 2x F6")
+            else
+                  print(Files.Version.Name .. ": No Updates Found")
+            end
+            
+      end
+      
+      AutoUpdate()
+      
+end
+
 local _atan                         = math.atan2
 local _min                          = math.min
 local _abs                          = math.abs
@@ -247,6 +295,7 @@ local WIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/2/21/T
 local EIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/4/48/Shuriken_Flip.png"
 local EbIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/a/a8/Shuriken_Flip_2.png"
 local RIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/b/bb/Perfect_Execution.png"
+local RbIcon = "https://vignette.wikia.nocookie.net/leagueoflegends/images/5/5b/Perfect_Execution_2.png"
 local IS = {}
 local Spells = {
 	["Aatrox"] = {"AatroxE"},
@@ -364,6 +413,8 @@ local Spells = {
 	["Zyra"] = {"ZyraE"},
 }
 
+local Version,Author,LVersion = "v2","miragessee","8.16"
+
 function Akali:Menu()
 	self.AkaliMenu = MenuElement({type = MENU, id = "Akali", name = "Mirage's Akali", leftIcon = HeroIcon})
 	
@@ -388,6 +439,8 @@ function Akali:Menu()
 	self.AkaliMenu.Combo:MenuElement({id = "UseEbUK", name = "Use E 2nd enemy is killable", value = true, leftIcon = EbIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseEbUKQ", name = "Use E 2nd enemy is killable EQ", value = true, leftIcon = EbIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseR", name = "Use R [Perfect Execution]", value = true, leftIcon = RIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseRb", name = "Use R 2nd", value = false, leftIcon = RbIcon})
+	self.AkaliMenu.Combo:MenuElement({id = "UseRbl", name = "Use R 2nd least health enemy", value = true, leftIcon = RbIcon})
 	self.AkaliMenu.Combo:MenuElement({id = "UseBC", name = "Use Bilgewater Cutlass", value = true})
 	self.AkaliMenu.Combo:MenuElement({id = "UseHG", name = "Use Hextech Gunblade", value = true})
 
@@ -415,6 +468,10 @@ function Akali:Menu()
 	self.AkaliMenu.Drawings:MenuElement({id = "DrawAA", name = "Draw Killable AAs", value = false})
 	self.AkaliMenu.Drawings:MenuElement({id = "DrawKS", name = "Draw Killable Skills", value = true})
 	self.AkaliMenu.Drawings:MenuElement({id = "DrawJng", name = "Draw Jungler Info", value = true})
+
+	self.AkaliMenu:MenuElement({id = "blank", type = SPACE , name = ""})
+	self.AkaliMenu:MenuElement({id = "blank", type = SPACE , name = "Script Ver: "..Version.. " - LoL Ver: "..LVersion.. ""})
+	self.AkaliMenu:MenuElement({id = "blank", type = SPACE , name = "by "..Author.. ""})
 end
 
 function Akali:Spells()
@@ -806,7 +863,7 @@ function Akali:Combo()
 
 	if targetR then
 		if self.AkaliMenu.Combo.UseR:Value() then
-			if IsReady(_R) then
+			if IsReady(_R) and GetSpellRName() == "AkaliR" then
 				if ValidTarget(targetR, AkaliR.range) then
 					LocalControlCastSpell(HK_R,targetR)
 				end
@@ -821,7 +878,7 @@ function Akali:Combo()
 	end
 
 	if targetRb then
-		if self.AkaliMenu.Combo.UseR:Value() then
+		if self.AkaliMenu.Combo.UseRb:Value() then
 			if IsReady(_R) and GetSpellRName() == "AkaliRb" then
 				if ValidTarget(targetRb, AkaliR.range) then
 					LocalControlCastSpell(HK_R,targetRb)
@@ -834,6 +891,29 @@ function Akali:Combo()
 				self:CastWIsUnderTurret()
 			end
 		end
+	end
+
+	if self.AkaliMenu.Combo.UseRbl:Value() then
+		local minHealth = 50000
+		local minHealthEnemy
+
+		for i,enemy in pairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, AkaliRb.range) and enemy.health < minHealth then
+				minHealth = enemy.health
+				minHealthEnemy = enemy
+			end
+		end
+
+		if IsReady(_R) and GetSpellRName() == "AkaliRb" then
+			LocalControlCastSpell(HK_R,minHealthEnemy)
+		end
+
+		if self.AkaliMenu.Combo.UseWR:Value() then
+			if IsReady(_W) then
+				LocalControlCastSpell(HK_W)
+			end
+		end
+		self:CastWIsUnderTurret()
 	end
 
 	if self.AkaliMenu.Combo.UseEb:Value() then
