@@ -516,6 +516,7 @@ function Akali:Tick()
 
 	--print(self.Detected[0])
 
+	if self.Detected[1] == nil then
 		self.Collision = false
 		self.CollisionSpellName = nil
 	end
@@ -977,6 +978,7 @@ function Akali:Combo()
 
 	if targetR then
 		if self.AkaliMenu.Combo.UseR:Value() then
+			--print(self.CollisionSpellName)
 			if IsReady(_R) and GetSpellRName() == "AkaliR" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
 				if ValidTarget(targetR, AkaliR.range) then
 					DelayAction(function()
@@ -995,6 +997,7 @@ function Akali:Combo()
 
 	if targetRb then
 		if self.AkaliMenu.Combo.UseRb:Value() then
+			--print(self.CollisionSpellName)
 			if IsReady(_R) and GetSpellRName() == "AkaliRb" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
 				if ValidTarget(targetRb, AkaliR.range) then
 					DelayAction(function()
