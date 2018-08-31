@@ -3,7 +3,7 @@ if myHero.charName ~= "Akali" then return end
 -- [ update ]
 do
       
-      local Version = 3
+      local Version = 4
       
       local Files = {
             Lua = {
@@ -286,6 +286,19 @@ function IsRecalling()
 	return false
 end
 
+function IsImmune(unit)
+  if type(unit) ~= "userdata" then error("{IsImmune}: bad argument #1 (userdata expected, got "..type(unit)..")") end
+  for i, buff in pairs(GetBuffs(unit)) do
+    if (buff.name == "KindredRNoDeathBuff" or buff.name == "UndyingRage") and GetPercentHP(unit) <= 10 then
+      return true
+    end
+    if buff.name == "VladimirSanguinePool" or buff.name == "JudicatorIntervention" then 
+      return true
+    end
+  end
+  return false
+end
+
 class "Akali"
 
 local HeroIcon = "https://www.mobafire.com/images/champion/square/akali.png"
@@ -423,7 +436,7 @@ function VectorPointProjectionOnLineSegment(v1, v2, v)
 	return pointSegment, pointLine, isOnSegment
 end
 
-local Version,Author,LVersion = "v3","miragessee & Ark223","8.16"
+local Version,Author,LVersion = "v4","miragessee & Ark223","8.17"
 
 function Akali:Menu()
 
@@ -470,7 +483,7 @@ function Akali:Menu()
 	self.AkaliMenu.Escape:MenuElement({id = "UseE", name = "Use E [Shuriken Flip]", value = true})
 
 	self.AkaliMenu:MenuElement({id = "AntiGapcloser", name = "AntiGapcloser", type = MENU})
-	self.AkaliMenu.AntiGapcloser:MenuElement({id = "UseW", name = "Use W [Twilight Shroud]", value = true, leftIcon = WIcon})
+	self.AkaliMenu.AntiGapcloser:MenuElement({id = "UseW", name = "Use W [Twilight Shroud]", value = false, leftIcon = WIcon})
 	self.AkaliMenu.AntiGapcloser:MenuElement({id = "UseE", name = "Use E [Shuriken Flip] FIRST ACTIVE]", value = false, leftIcon = EIcon})
 	self.AkaliMenu.AntiGapcloser:MenuElement({id = "DistanceW", name = "Distance: W", value = 300, min = 25, max = 2000, step = 25})
 	self.AkaliMenu.AntiGapcloser:MenuElement({id = "DistanceE", name = "Distance: E", value = 300, min = 25, max = 2000, step = 25})
@@ -737,7 +750,7 @@ function Akali:Harass()
 	--print(self.Collision)
 
 	local targetBC = GOS:GetTarget(550,"AP")
-
+	
 	if self.AkaliMenu.Harass.UseBC:Value() then
 		if GetItemSlot(myHero, 3144) > 0 and ValidTarget(targetBC, 550) then
 			if myHero:GetSpellData(GetItemSlot(myHero, 3144)).currentCd == 0 then
@@ -765,31 +778,35 @@ function Akali:Harass()
 	--print(GotBuff(targetEb, "AkaliEMis"))
 
 	if targetE then
-		if self.AkaliMenu.Harass.UseE:Value() then
-			if IsReady(_E) and GetSpellEName() == "AkaliE" and self.Collision == false then
-				if ValidTarget(targetE, AkaliE.range) then
-					local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
-					if hitChance and hitChance >= 2 then
-						if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
-							self:CastE(targetE,aimPosition)
+		if not IsImmune(targetE) then
+			if self.AkaliMenu.Harass.UseE:Value() then
+				if IsReady(_E) and GetSpellEName() == "AkaliE" and self.Collision == false then
+					if ValidTarget(targetE, AkaliE.range) then
+						local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
+						if hitChance and hitChance >= 2 then
+							if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
+								self:CastE(targetE,aimPosition)
+							end
 						end
 					end
+					self:CastWIsUnderTurret()
 				end
-				self:CastWIsUnderTurret()
 			end
 		end
 	end
 
 	if targetQ then
-		if self.AkaliMenu.Harass.UseQ:Value() then
-			if self.CollisionSpellName == "YasuoWMovingWall" then
+		if not IsImmune(targetQ) then
+			if self.AkaliMenu.Harass.UseQ:Value() then
+				if self.CollisionSpellName == "YasuoWMovingWall" then
 
-			else
-				if IsReady(_Q) then
-					if ValidTarget(targetQ, AkaliQ.range) then
-						LocalControlCastSpell(HK_Q,targetQ)
+				else
+					if IsReady(_Q) then
+						if ValidTarget(targetQ, AkaliQ.range) then
+							LocalControlCastSpell(HK_Q,targetQ)
+						end
+						self:CastWIsUnderTurret()
 					end
-					self:CastWIsUnderTurret()
 				end
 			end
 		end
@@ -946,29 +963,16 @@ function Akali:Combo()
 	local targetRb = GOS:GetTarget(AkaliR.range,"AP")
 
 	if targetE then
-		if self.AkaliMenu.Combo.UseE:Value() then
-			if IsReady(_E) and GetSpellEName() == "AkaliE" and self.Collision == false then
-				if ValidTarget(targetE, AkaliE.range) then
-					local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
-					if hitChance and hitChance >= 2 then
-						if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
-							self:CastE(targetE,aimPosition)
+		if not IsImmune(targetE) then
+			if self.AkaliMenu.Combo.UseE:Value() then
+				if IsReady(_E) and GetSpellEName() == "AkaliE" and self.Collision == false then
+					if ValidTarget(targetE, AkaliE.range) then
+						local hitChance, aimPosition = HPred:GetHitchance(myHero.pos, targetE, AkaliE.range, AkaliE.delay, AkaliE.speed, AkaliE.radius, true)
+						if hitChance and hitChance >= 2 then
+							if GetMinionCollision(myHero.pos, aimPosition, AkaliE.radius) == 0 then
+								self:CastE(targetE,aimPosition)
+							end
 						end
-					end
-				end
-				self:CastWIsUnderTurret()
-			end
-		end
-	end
-
-	if targetQ then
-		if self.AkaliMenu.Combo.UseQ:Value() then
-			if self.CollisionSpellName == "YasuoWMovingWall" then
-
-			else
-				if IsReady(_Q) and self.Collision == false then
-					if ValidTarget(targetQ, AkaliQ.range) then
-						LocalControlCastSpell(HK_Q,targetQ)
 					end
 					self:CastWIsUnderTurret()
 				end
@@ -976,40 +980,61 @@ function Akali:Combo()
 		end
 	end
 
-	if targetR then
-		if self.AkaliMenu.Combo.UseR:Value() then
-			--print(self.CollisionSpellName)
-			if IsReady(_R) and GetSpellRName() == "AkaliR" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
-				if ValidTarget(targetR, AkaliR.range) then
-					DelayAction(function()
-						LocalControlCastSpell(HK_R,targetR)
-					end, 0.4)
-					if self.AkaliMenu.Combo.UseWR:Value() then
-						if IsReady(_W) then
-							LocalControlCastSpell(HK_W)
+	if targetQ then
+		if not IsImmune(targetQ) then
+			if self.AkaliMenu.Combo.UseQ:Value() then
+				if self.CollisionSpellName == "YasuoWMovingWall" then
+
+				else
+					if IsReady(_Q) and self.Collision == false then
+						if ValidTarget(targetQ, AkaliQ.range) then
+							LocalControlCastSpell(HK_Q,targetQ)
 						end
+						self:CastWIsUnderTurret()
 					end
 				end
-				self:CastWIsUnderTurret()
+			end
+		end
+	end
+
+	if targetR then
+		if not IsImmune(targetR) then
+			if self.AkaliMenu.Combo.UseR:Value() then
+				--print(self.CollisionSpellName)
+				if IsReady(_R) and GetSpellRName() == "AkaliR" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
+					if ValidTarget(targetR, AkaliR.range) then
+						DelayAction(function()
+							LocalControlCastSpell(HK_R,targetR)
+						end, 0.4)
+						if self.AkaliMenu.Combo.UseWR:Value() then
+							if IsReady(_W) then
+								LocalControlCastSpell(HK_W)
+							end
+						end
+					end
+					self:CastWIsUnderTurret()
+				end
 			end
 		end
 	end
 
 	if targetRb then
-		if self.AkaliMenu.Combo.UseRb:Value() then
-			--print(self.CollisionSpellName)
-			if IsReady(_R) and GetSpellRName() == "AkaliRb" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
-				if ValidTarget(targetRb, AkaliR.range) then
-					DelayAction(function()
-						LocalControlCastSpell(HK_R,targetRb)
-					end, 0.4)
-					if self.AkaliMenu.Combo.UseWR:Value() then
-						if IsReady(_W) then
-							LocalControlCastSpell(HK_W)
+		if not IsImmune(targetRb) then
+			if self.AkaliMenu.Combo.UseRb:Value() then
+				--print(self.CollisionSpellName)
+				if IsReady(_R) and GetSpellRName() == "AkaliRb" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
+					if ValidTarget(targetRb, AkaliR.range) then
+						DelayAction(function()
+							LocalControlCastSpell(HK_R,targetRb)
+						end, 0.4)
+						if self.AkaliMenu.Combo.UseWR:Value() then
+							if IsReady(_W) then
+								LocalControlCastSpell(HK_W)
+							end
 						end
 					end
+					self:CastWIsUnderTurret()
 				end
-				self:CastWIsUnderTurret()
 			end
 		end
 	end
@@ -1025,13 +1050,17 @@ function Akali:Combo()
 			end
 		end
 
-		if IsReady(_R) and GetSpellRName() == "AkaliRb" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
-			DelayAction(function()
-				LocalControlCastSpell(HK_R,minHealthEnemy)
-			end, 0.4)
-			if self.AkaliMenu.Combo.UseWR:Value() then
-				if IsReady(_W) then
-					LocalControlCastSpell(HK_W)
+		if minHealthEnemy then
+			if not IsImmune(minHealthEnemy) then
+				if IsReady(_R) and GetSpellRName() == "AkaliRb" and (self.Collision == false or self.CollisionSpellName == "YasuoWMovingWall") then
+					DelayAction(function()
+						LocalControlCastSpell(HK_R,minHealthEnemy)
+					end, 0.4)
+						if self.AkaliMenu.Combo.UseWR:Value() then
+						if IsReady(_W) then
+							LocalControlCastSpell(HK_W)
+						end
+					end
 				end
 			end
 		end
