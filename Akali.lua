@@ -3,7 +3,7 @@ if myHero.charName ~= "Akali" then return end
 -- [ update ]
 do
       
-      local Version = 4
+      local Version = 5
       
       local Files = {
             Lua = {
@@ -286,6 +286,11 @@ function IsRecalling()
 	return false
 end
 
+function GetPercentHP(unit)
+	if type(unit) ~= "userdata" then error("{GetPercentHP}: bad argument #1 (userdata expected, got "..type(unit)..")") end
+	return 100*unit.health/unit.maxHealth
+  end
+
 function IsImmune(unit)
   if type(unit) ~= "userdata" then error("{IsImmune}: bad argument #1 (userdata expected, got "..type(unit)..")") end
   for i, buff in pairs(GetBuffs(unit)) do
@@ -436,7 +441,7 @@ function VectorPointProjectionOnLineSegment(v1, v2, v)
 	return pointSegment, pointLine, isOnSegment
 end
 
-local Version,Author,LVersion = "v4","miragessee & Ark223","8.17"
+local Version,Author,LVersion = "v5","miragessee & Ark223","8.17"
 
 function Akali:Menu()
 
