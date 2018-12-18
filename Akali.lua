@@ -102,15 +102,15 @@ local LocalGameIsOnTop = Game.IsOnTop;
 local EnemyTraps = {}
 
 function GetGameObjects()
-	--EnemyHeroes = {}
-	print(Game.ObjectCount())
+    --EnemyHeroes = {}
+    print(Game.ObjectCount())
     for i = 1, Game.ObjectCount() do
         local GameObject = Game.Object(i)
         if GameObject.isEnemy then
             if GameObject.charName:match("Cait") then
                 if EnemyTraps[GameObject.name] == nil then
-					print(GameObject.isEnemy)
-					print(GameObject.type)
+                    print(GameObject.isEnemy)
+                    print(GameObject.type)
                     print(GameObject.name)
                     print(GameObject.pos)
                     print(EnemyTraps[GameObject.name])
@@ -272,10 +272,10 @@ end
 
 function RDmg()
     if myHero:GetSpellData(_R).level == 0 then
-        local Dmg1 = (({120, 180, 240})[1] + 0.5 * myHero.bonusDamage)
+        local Dmg1 = (({85, 150, 215})[1] + 0.5 * myHero.bonusDamage)
         return Dmg1
     else
-        local Dmg1 = (({120, 180, 240})[myHero:GetSpellData(_R).level] + 0.5 * myHero.bonusDamage)
+        local Dmg1 = (({85, 150, 215})[myHero:GetSpellData(_R).level] + 0.5 * myHero.bonusDamage)
         return Dmg1
     end
 end
@@ -348,29 +348,29 @@ function Akali:OnProcessSpell()
         local spell = unit.activeSpell
         if spell and last ~= (spell.name .. spell.startTime) and unit.isChanneling then
             units[i].spell = spell.name .. spell.startTime
-			--
-			--print(unit)
-			print(spell.name)
-			--print(spell.placementPos)
-			--print(spell.range)
-			--print(spell.startPos)
-			local startPos = Vector(unit.activeSpell.startPos)
-			local placementPos = Vector(unit.activeSpell.placementPos)
-			local unitPos = Vector(unit.pos)
-			--local sRange = self.SpellsE[unit.activeSpell.name].range
-			local sRange = spell.range
-			local endPos = self:CalculateEndPos(startPos, placementPos, unitPos, sRange)
-			print(endPos)
-			Draw.Circle(endPos, 20, 10, Draw.Color(255, 255, 255, 255))
-			--Draw.Text(spell.name, 17, endPos.x, endPos.y, Draw.Color(0xFFFF0000))
-			--Draw.Circle(GameObject.pos, GameObject.boundingRadius, 10, Draw.Color(255, 255, 255, 255))
-                    --Draw.Text(GameObject.name, 17, GameObject.pos2D.x - 45, GameObject.pos2D.y + 10, Draw.Color(0xFF32CD32))
-			self.Spellx = spell
-			return spell
-			--return unit, spell
-		end
+            --
+            --print(unit)
+            print(spell.name)
+            --print(spell.placementPos)
+            --print(spell.range)
+            --print(spell.startPos)
+            local startPos = Vector(unit.activeSpell.startPos)
+            local placementPos = Vector(unit.activeSpell.placementPos)
+            local unitPos = Vector(unit.pos)
+            --local sRange = self.SpellsE[unit.activeSpell.name].range
+            local sRange = spell.range
+            local endPos = self:CalculateEndPos(startPos, placementPos, unitPos, sRange)
+            print(endPos)
+            Draw.Circle(endPos, 20, 10, Draw.Color(255, 255, 255, 255))
+            --Draw.Text(spell.name, 17, endPos.x, endPos.y, Draw.Color(0xFFFF0000))
+            --Draw.Circle(GameObject.pos, GameObject.boundingRadius, 10, Draw.Color(255, 255, 255, 255))
+            --Draw.Text(GameObject.name, 17, GameObject.pos2D.x - 45, GameObject.pos2D.y + 10, Draw.Color(0xFF32CD32))
+            self.Spellx = spell
+            return spell
+        --return unit, spell
+        end
     end
-    --return nil, nil
+--return nil, nil
 end
 
 local HeroIcon = "https://www.mobafire.com/images/champion/square/akali.png"
@@ -508,12 +508,12 @@ function VectorPointProjectionOnLineSegment(v1, v2, v)
     return pointSegment, pointLine, isOnSegment
 end
 
-local Version, Author, LVersion = "v6", "miragessee & Ark223", "8.17"
+local Version, Author, LVersion = "v7", "miragessee & Ark223", "8.24"
 
 function Akali:Menu()
-	
-	self.Spellx = nil
-
+    
+    self.Spellx = nil
+    
     self.Collision = nil
     
     self.CollisionSpellName = nil
@@ -548,6 +548,8 @@ function Akali:Menu()
     
     self.AkaliMenu:MenuElement({id = "KillSteal", name = "KillSteal", type = MENU})
     self.AkaliMenu.KillSteal:MenuElement({id = "UseIgnite", name = "Use Ignite", value = true, leftIcon = IgniteIcon})
+    self.AkaliMenu.KillSteal:MenuElement({id = "UseQ", name = "Use Q [Five Point Strike]", value = true, leftIcon = QIcon})
+    self.AkaliMenu.KillSteal:MenuElement({id = "UseE", name = "Use E [Shuriken Flip] FIRST ACTIVE", value = true, leftIcon = EIcon})
     
     self.AkaliMenu:MenuElement({id = "AutoLevel", name = "AutoLevel", type = MENU})
     self.AkaliMenu.AutoLevel:MenuElement({id = "AutoLevel", name = "Only Q->E->W", value = true})
@@ -595,8 +597,8 @@ function Akali:__init()
     }
     self.Detected = {}
     Callback.Add("Tick", function()self:Tick() end)
-	Callback.Add("Draw", function()self:Draw() end)
-	--Callback.Add("Tick", OnProcessSpell)
+    Callback.Add("Draw", function()self:Draw() end)
+--Callback.Add("Tick", OnProcessSpell)
 end
 
 function Akali:Tick()
@@ -604,18 +606,14 @@ function Akali:Tick()
     
     --print(self.Detected[0])
     --DelayAction(function()
-        --GetGameObjects()
-	--end, 1)
-
-	--self:OnProcessSpell()
-
-	--if self.Spellx then
-	--	Draw.Circle(self.Spellx.startPos, 20, 10, Draw.Color(255, 255, 255, 255))
-		--Draw.Text(self.Spellx.name, 17, self.Spellx.startPos.x, self.Spellx.startPos.y, Draw.Color(0xFFFF0000))
-	--end
-	
-	--OnProcessSpell()
-    
+    --GetGameObjects()
+    --end, 1)
+    --self:OnProcessSpell()
+    --if self.Spellx then
+    --	Draw.Circle(self.Spellx.startPos, 20, 10, Draw.Color(255, 255, 255, 255))
+    --Draw.Text(self.Spellx.name, 17, self.Spellx.startPos.x, self.Spellx.startPos.y, Draw.Color(0xFFFF0000))
+    --end
+    --OnProcessSpell()
     if self.Detected[1] == nil then
         self.Collision = false
         self.CollisionSpellName = nil
@@ -811,11 +809,29 @@ function Akali:KillSteal()
     for i, enemy in pairs(GetEnemyHeroes()) do
         if self.AkaliMenu.KillSteal.UseIgnite:Value() then
             local IgniteDmg = (55 + 25 * myHero.levelData.lvl)
-            if ValidTarget(enemy, 600) and enemy.health + enemy.shieldAD < IgniteDmg then
+            if ValidTarget(enemy, 600) and enemy.health + enemy.hpRegen < IgniteDmg then
                 if myHero:GetSpellData(SUMMONER_1).name == "SummonerDot" and IsReady(SUMMONER_1) then
                     Control.CastSpell(HK_SUMMONER_1, enemy)
                 elseif myHero:GetSpellData(SUMMONER_2).name == "SummonerDot" and IsReady(SUMMONER_2) then
                     Control.CastSpell(HK_SUMMONER_2, enemy)
+                end
+            end
+        end
+    end
+    if self.AkaliMenu.KillSteal.UseQ:Value() then
+        if IsReady(_Q) then
+            for i, enemy in pairs(GetEnemyHeroes()) do
+                if ValidTarget(enemy, AkaliQ.range) and enemy.health < QDmg() then
+                    LocalControlCastSpell(HK_Q, enemy)
+                end
+            end
+        end
+    end
+    if self.AkaliMenu.KillSteal.UseE:Value() then
+        if IsReady(_E) then
+            for i, enemy in pairs(GetEnemyHeroes()) do
+                if ValidTarget(enemy, AkaliE.range) and enemy.health < EDmg() then
+                    LocalControlCastSpell(HK_E, enemy)
                 end
             end
         end
@@ -948,13 +964,12 @@ function Akali:Draw()
         else
             table.remove(self.Detected, _)
         end
-	end
-	
-	--if self.Spellx then
-	--	Draw.Circle(self.Spellx.startPos, 20, 10, Draw.Color(255, 255, 255, 255))
-		--Draw.Text(self.Spellx.name, 17, self.Spellx.startPos.x, self.Spellx.startPos.y, Draw.Color(0xFFFF0000))
-	--end
+    end
     
+    --if self.Spellx then
+    --	Draw.Circle(self.Spellx.startPos, 20, 10, Draw.Color(255, 255, 255, 255))
+    --Draw.Text(self.Spellx.name, 17, self.Spellx.startPos.x, self.Spellx.startPos.y, Draw.Color(0xFFFF0000))
+    --end
     for i, enemy in pairs(GetEnemyHeroes()) do
         if self.AkaliMenu.Drawings.DrawJng:Value() then
             if enemy:GetSpellData(SUMMONER_1).name == "SummonerSmite" or enemy:GetSpellData(SUMMONER_2).name == "SummonerSmite" then
